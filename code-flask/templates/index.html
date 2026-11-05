@@ -1,14 +1,32 @@
-<h1>Partage de frais</h1>
+{% extends "base.html" %} {% block title %}Accueil - Partage de frais{% endblock
+%} {% block content %}
 
-<h2>Membres</h2>
+<h1>Tableau de bord</h1>
 
-<ul>
-  {% for membre in membres %}
-  <li>{{ membre["nom"] }}</li>
-  {% endfor %}
-</ul>
+<p>Bienvenue sur votre application de partage de frais !</p>
 
-<form method="post" action="/membres">
-  <input name="nom" placeholder="Nom" required />
-  <button>Ajouter</button>
-</form>
+<hr />
+
+<h2>Vue d'ensemble</h2>
+
+<div class="dashboard-grid">
+  <article>
+    <h3>Groupes</h3>
+    <h2>{{ nb_groupes }}</h2>
+    <a href="{{ url_for('groupes') }}">Voir les groupes</a>
+  </article>
+
+  <article>
+    <h3>Membres</h3>
+    <h2>{{ nb_membres }}</h2>
+    <a href="{{ url_for('membres') }}">Voir les membres</a>
+  </article>
+
+  <article>
+    <h3>Dépenses</h3>
+    <h2>{{ nb_depenses }}</h2>
+    <a href="{{ url_for('depenses') }}">Voir les dépenses</a>
+  </article>
+</div>
+
+{% endblock %}

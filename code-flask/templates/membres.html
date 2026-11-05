@@ -1,0 +1,64 @@
+{% extends "base.html" %} {% block title %}Membres - Partage de frais{% endblock
+%} {% block content %}
+
+<h1>Membres</h1>
+
+<section>
+  <h2>Liste des membres</h2>
+
+  {% if membres %}
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Groupe</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for membre in membres %}
+        <tr>
+          <td>{{ membre["nom"] }}</td>
+          <td>{{ membre["groupe"] or "Aucun groupe" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+  {% else %}
+  <p>Aucun membre pour le moment.</p>
+  {% endif %}
+</section>
+
+<hr />
+
+<section>
+  <h2>Ajouter un membre</h2>
+
+  <form method="post" action="{{ url_for('ajouter_membre') }}">
+    <label>
+      Nom
+      <input type="text" name="nom" placeholder="Ex : Alice" required />
+    </label>
+
+    <label>
+      Groupe
+      <select name="groupe_id" required>
+        <option value="">Choisir un groupe</option>
+
+        {% for groupe in groupes %}
+        <option value="{{ groupe['id'] }}">{{ groupe["nom"] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    {% if groupes %}
+    <button type="submit">Ajouter le membre</button>
+    {% else %}
+    <p>Crée d'abord un groupe pour pouvoir ajouter un membre.</p>
+    {% endif %}
+  </form>
+</section>
+
+{% endblock %}

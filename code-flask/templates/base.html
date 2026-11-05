@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{% block title %}Partage de frais{% endblock %}</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+
+  <body>
+    <nav class="">
+      <ul>
+        <a href="/" class="brand-link">
+          <strong>Partage de frais</strong>
+        </a>
+      </ul>
+
+      <ul>
+        <li><a href="/">Accueil</a></li>
+        <li><a href="/depenses">Dépenses</a></li>
+        <li><a href="/membres">Membres</a></li>
+        <li><a href="/groupes">Groupes</a></li>
+      </ul>
+    </nav>
+
+    <main class="container">{% block content %} {% endblock %}</main>
+  </body>
+</html>

@@ -1,27 +1,120 @@
-{% extends "base.html" %} {% block title %}Dépenses - Partage de frais{%
-endblock %} {% block content %}
+{% extends "base.html" %}
+{% block title %}Dépenses - Partage de frais{% endblock %}
+{% block content %}
 
 <h1>Dépenses</h1>
 
-<h2>Ajouter une dépense</h2>
+{% if erreur %}
+<article class="error-message" role="alert">{{ erreur }}</article>
+{% endif %}
 
-<form method="post" action="/depenses">
-  <label>
-    Libellé
-    <input type="text" name="libelle" required />
-  </label>
+{% if groupes %}
+<section>
+  <h2>Choisir un groupe</h2>
+  <form method="get" action="{{ url_for('depenses') }}">
+    <label for="groupe_id">Groupe</label>
+    <select id="groupe_id" name="groupe_id">
+      {% for option in groupes %}
+      <option value="{{ option['id'] }}" {% if option['id'] == groupe_id %}selected{% endif %}>
+        {{ option["nom"] }}
+      </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Afficher</button>
+  </form>
+</section>
 
-  <label>
-    Montant (€)
-    <input type="number" name="montant" step="0.01" required />
-  </label>
+{% if groupe %}
+<section>
+  <h2>Dépenses de {{ groupe["nom"] }}</h2>
+  {% if depenses %}
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Libellé</th>
+          <th>Payeur</th>
+          <th>Participants</th>
+          <th>Montant</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for depense in depenses %}
+        <tr>
+          <td>{{ depense["date"] }}</td>
+          <td>{{ depense["libelle"] }}</td>
+          <td>{{ depense["payeur"] }}</td>
+          <td>{{ depense["participants"]|map(attribute="nom")|join(", ") }}</td>
+          <td>{{ "%.2f"|format(depense["montant_centimes"] / 100) }} €</td>
+          <td>
+            <form method="post" action="{{ url_for('supprimer_depense', depense_id=depense['id']) }}">
+              <input type="hidden" name="groupe_id" value="{{ groupe_id }}" />
+              <button type="submit" class="secondary">Supprimer</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+  {% else %}
+  <p>Aucune dépense enregistrée pour ce groupe.</p>
+  {% endif %}
+</section>
 
-  <label>
-    Date
-    <input type="date" name="date" required />
-  </label>
+<section>
+  <h2>Ajouter une dépense</h2>
+  {% if membres %}
+  <form method="post" action="{{ url_for('ajouter_depense') }}">
+    <input type="hidden" name="groupe_id" value="{{ groupe_id }}" />
 
-  <button type="submit">Ajouter la dépense</button>
-</form>
+    <label for="libelle">Libellé</label>
+    <input id="libelle" type="text" name="libelle" placeholder="Ex. : Courses" required />
+
+    <label for="montant">Montant (€)</label>
+    <input id="montant" type="number" name="montant" min="0.01" step="0.01" required />
+
+    <label for="date">Date</label>
+    <input
+      id="date"
+      type="date"
+      name="date"
+      min="{{ groupe['date_debut'] }}"
+      max="{{ groupe['date_fin'] }}"
+      required
+    />
+
+    <label for="payeur_id">Payée par</label>
+    <select id="payeur_id" name="payeur_id" required>
+      <option value="">Choisir un membre</option>
+      {% for membre in membres %}
+      <option value="{{ membre['id'] }}">{{ membre["nom"] }}</option>
+      {% endfor %}
+    </select>
+
+    <fieldset>
+      <legend>Participants (au moins un)</legend>
+      {% for membre in membres %}
+      <label>
+        <input type="checkbox" name="participants" value="{{ membre['id'] }}" />
+        {{ membre["nom"] }}
+      </label>
+      {% endfor %}
+    </fieldset>
+
+    <button type="submit">Ajouter la dépense</button>
+  </form>
+  {% else %}
+  <p>Ajoutez d’abord des membres à ce groupe.</p>
+  <a href="{{ url_for('membres', groupe_id=groupe_id) }}" role="button">Ajouter des membres</a>
+  {% endif %}
+</section>
+{% endif %}
+{% else %}
+<p>Aucun groupe n’existe encore. Créez un groupe avant d’ajouter une dépense.</p>
+<a href="{{ url_for('groupes') }}" role="button">Créer un groupe</a>
+{% endif %}
 
 {% endblock %}

@@ -20,6 +20,31 @@ def test_accueil(client):
     assert b"Alice" in response.data
 
 
+@pytest.mark.parametrize(
+    ("page", "contenu"),
+    [
+        ("/", "Alice"),
+        ("/groupes", "Vacances à Spa"),
+        ("/membres", "Chloé"),
+        ("/depenses", "Courses"),
+    ],
+)
+def test_les_pages_affichent_les_donnees_de_la_base(client, page, contenu):
+    response = client.get(page)
+
+    assert response.status_code == 200
+    assert contenu.encode() in response.data
+
+
+def test_page_depenses_propose_un_formulaire_complet(client):
+    response = client.get("/depenses")
+
+    assert response.status_code == 200
+    assert b'name="groupe_id"' in response.data
+    assert b'name="payeur_id"' in response.data
+    assert b'name="participants"' in response.data
+
+
 def test_accueil_calcule_les_soldes_du_groupe(client):
     contexte = {}
 
@@ -98,6 +123,26 @@ def test_ajouter_puis_supprimer_une_depense(client):
         ).fetchone() is None
 
 
+def test_ajout_depense_depuis_sa_page_affiche_la_nouvelle_depense(client):
+    response = client.post(
+        "/depenses",
+        data={
+            "groupe_id": "1",
+            "libelle": "Diner",
+            "montant": "10.00",
+            "date": "2026-07-02",
+            "payeur_id": "1",
+            "participants": ["1", "2"],
+        },
+    )
+
+    assert response.status_code == 302
+    assert "/depenses?groupe_id=1" in response.headers["Location"]
+    response = client.get(response.headers["Location"])
+    assert b"Diner" in response.data
+    assert b"Alice, Bob" in response.data
+
+
 @pytest.mark.parametrize(
     ("montant", "jour"),
     [("0.00", "2026-07-02"), ("10.00", "2026-07-09"), ("1.001", "2026-07-02")],
@@ -121,6 +166,42 @@ def test_depense_invalide_n_est_pas_enregistree(client, montant, jour):
         assert conn.execute(
             "SELECT 1 FROM depenses WHERE libelle = 'Invalide'"
         ).fetchone() is None
+
+
+def test_erreur_depense_est_affichee_sur_la_page_depenses(client):
+    response = client.post(
+        "/depenses",
+        data={
+            "groupe_id": "1",
+            "libelle": "Invalide",
+            "montant": "0",
+            "date": "2026-07-02",
+            "payeur_id": "1",
+            "participants": ["1"],
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Le montant doit être supérieur à 0 €.".encode() in response.data
+
+
+def test_groupe_inexistant_affiche_une_erreur_sur_la_page_depenses(client):
+    response = client.post(
+        "/depenses",
+        data={
+            "groupe_id": "999",
+            "libelle": "Courses",
+            "montant": "10.00",
+            "date": "2026-07-02",
+            "payeur_id": "1",
+            "participants": ["1"],
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Sélectionnez un groupe existant.".encode() in response.data
 
 
 def test_refuse_un_payeur_d_un_autre_groupe(client):

@@ -84,14 +84,9 @@ git clone <adresse-de-votre-dépôt>
 
 ## Choisir votre dossier
 
-- `code-streamlit` : le plus simple. [Premiers pas](https://docs.streamlit.io/get-started).
-- `code-flask` : plus de contrôle. [Démarrage rapide](https://flask.palletsprojects.com/en/stable/quickstart/).
-
-Gardez un dossier et supprimez l'autre. Chacun contient un `app.py` qui lit la base, l'affiche et donne un exemple de formulaire.
+Ce dépôt contient l’application Flask dans `code-flask`.
 
 ## Installer et lancer
-
-Avec Streamlit, remplacez `code-flask` par `code-streamlit`.
 
 macOS ou Linux, depuis la racine du dépôt :
 
@@ -114,10 +109,14 @@ pip install -r requirements.txt
 pytest
 ```
 
-Puis lancez l'application :
+Puis, toujours depuis le dossier `code-flask`, lancez Flask :
 
-- Flask : `python app.py`, puis <http://127.0.0.1:5000>
-- Streamlit : `streamlit run app.py`
+```powershell
+python app.py
+```
+
+Ouvrez <http://127.0.0.1:5000>. Gardez le terminal ouvert pendant l’utilisation
+de l’application et arrêtez le serveur avec `Ctrl+C`.
 
 Sur Mac, gardez `127.0.0.1` pour Flask. Avec `localhost`, vous pouvez tomber sur AirPlay, qui utilise aussi le port 5000, et obtenir une erreur 403.
 
@@ -125,8 +124,7 @@ Sur Mac, gardez `127.0.0.1` pour Flask. Avec `localhost`, vous pouvez tomber sur
 
 Vous travaillez dans `app.py`. `base.py` ouvre la base : vous n'avez pas besoin de le modifier.
 
-- **Flask** : chaque adresse a sa fonction. `accueil` lit la base et affiche `PAGE`, qui contient le HTML. `ajouter_membre` reçoit le formulaire, écrit dans la base et revient à l'accueil. Pour une nouvelle fonctionnalité, ajoutez un formulaire dans `PAGE` et une fonction.
-- **Streamlit** : le fichier s'exécute de haut en bas, puis à nouveau à chaque clic. Pour une nouvelle fonctionnalité, ajoutez vos champs, vos boutons et vos requêtes à la suite du fichier.
+- **Flask** : chaque page a sa route et son template. L’accueil montre le solde d’un groupe, tandis que les pages Groupes, Membres et Dépenses permettent de consulter et gérer leurs données. Les formulaires enregistrent les changements dans la base SQLite.
 
 ## La base
 

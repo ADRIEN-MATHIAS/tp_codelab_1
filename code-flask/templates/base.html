@@ -18,18 +18,18 @@
   </head>
 
   <body>
-    <nav class="">
+    <nav>
       <ul>
-        <a href="/" class="brand-link">
+        <a href="{{ url_for('accueil') }}" class="brand-link">
           <strong>Partage de frais</strong>
         </a>
       </ul>
 
       <ul>
-        <li><a href="/">Accueil</a></li>
-        <li><a href="/depenses">Dépenses</a></li>
-        <li><a href="/membres">Membres</a></li>
-        <li><a href="/groupes">Groupes</a></li>
+        <li><a href="{{ url_for('accueil') }}">Accueil</a></li>
+        <li><a href="{{ url_for('depenses') }}">Dépenses</a></li>
+        <li><a href="{{ url_for('membres') }}">Membres</a></li>
+        <li><a href="{{ url_for('groupes') }}">Groupes</a></li>
       </ul>
     </nav>
 

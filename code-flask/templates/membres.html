@@ -3,8 +3,25 @@
 
 <h1>Membres</h1>
 
+{% if erreur %}
+<article class="error-message" role="alert">{{ erreur }}</article>
+{% endif %}
+
 <section>
-  <h2>Liste des membres</h2>
+  <h2>Liste des membres{% if groupe_id %} du groupe sélectionné{% endif %}</h2>
+
+  <form method="get" action="{{ url_for('membres') }}">
+    <label for="filtre_groupe">Filtrer par groupe</label>
+    <select id="filtre_groupe" name="groupe_id">
+      <option value="">Tous les groupes</option>
+      {% for groupe in groupes %}
+      <option value="{{ groupe['id'] }}" {% if groupe['id'] == groupe_id %}selected{% endif %}>
+        {{ groupe["nom"] }}
+      </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrer</button>
+  </form>
 
   {% if membres %}
   <figure>
@@ -13,6 +30,7 @@
         <tr>
           <th>Nom</th>
           <th>Groupe</th>
+          <th>Actions</th>
         </tr>
       </thead>
 
@@ -20,7 +38,8 @@
         {% for membre in membres %}
         <tr>
           <td>{{ membre["nom"] }}</td>
-          <td>{{ membre["groupe"] or "Aucun groupe" }}</td>
+          <td>{{ membre["groupe"] }}</td>
+          <td><a href="{{ url_for('accueil', groupe_id=membre['groupe_id']) }}">Voir le groupe</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -48,7 +67,9 @@
         <option value="">Choisir un groupe</option>
 
         {% for groupe in groupes %}
-        <option value="{{ groupe['id'] }}">{{ groupe["nom"] }}</option>
+        <option value="{{ groupe['id'] }}" {% if groupe['id'] == groupe_id %}selected{% endif %}>
+          {{ groupe["nom"] }}
+        </option>
         {% endfor %}
       </select>
     </label>
@@ -56,7 +77,8 @@
     {% if groupes %}
     <button type="submit">Ajouter le membre</button>
     {% else %}
-    <p>Crée d'abord un groupe pour pouvoir ajouter un membre.</p>
+    <p>Créez d’abord un groupe pour pouvoir ajouter un membre.</p>
+    <a href="{{ url_for('groupes') }}">Créer un groupe</a>
     {% endif %}
   </form>
 </section>

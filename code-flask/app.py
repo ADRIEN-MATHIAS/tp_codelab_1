@@ -40,11 +40,11 @@ def _groupe_par_defaut(conn):
     ).fetchone()
 
 
-# Redirige vers la page d'accueil avec un message d'erreur
-def _erreur(message: str, groupe_id: int | None = None):
-    return redirect(
-        url_for("accueil", groupe_id=groupe_id, erreur=message)
-    )
+# Redirige vers la page concernée avec un message d'erreur
+def _erreur(
+    message: str, groupe_id: int | None = None, page: str = "accueil"
+):
+    return redirect(url_for(page, groupe_id=groupe_id, erreur=message))
 
 
 # --- ROUTES GET (Affichage des pages) ---
@@ -162,26 +162,121 @@ def accueil():
 # Tes routes GET séparées qui ont été conservées
 @app.get("/membres")
 def membres():
+    erreur = request.args.get("erreur")
+    groupe_id_form = request.args.get("groupe_id")
+    if groupe_id_form:
+        try:
+            groupe_id = _id_formulaire(groupe_id_form, "groupe")
+        except ValueError:
+            abort(400)
+    else:
+        groupe_id = None
+
     with ouvrir_base() as conn:
-        groupes = conn.execute("SELECT id, nom FROM groupes").fetchall()
-        membres = conn.execute("""
-            SELECT m.id, m.nom, g.nom as groupe 
-            FROM membres m
-            LEFT JOIN groupes g ON m.groupe_id = g.id
-        """).fetchall()
-    return render_template("membres.html", membres=membres, groupes=groupes)
+        groupes = conn.execute(
+            "SELECT id, nom FROM groupes ORDER BY id"
+        ).fetchall()
+        if groupe_id is not None and not any(
+            groupe["id"] == groupe_id for groupe in groupes
+        ):
+            abort(404)
+
+        requete = """
+            SELECT m.id, m.nom, m.groupe_id, g.nom AS groupe
+            FROM membres AS m
+            JOIN groupes AS g ON g.id = m.groupe_id
+        """
+        parametres = ()
+        if groupe_id is not None:
+            requete += " WHERE m.groupe_id = ?"
+            parametres = (groupe_id,)
+        requete += " ORDER BY g.id, m.id"
+        membres = conn.execute(requete, parametres).fetchall()
+    return render_template(
+        "membres.html",
+        membres=membres,
+        groupes=groupes,
+        groupe_id=groupe_id,
+        erreur=erreur,
+    )
 
 @app.get("/depenses")
 def depenses():
-    return render_template("depenses.html")
+    erreur = request.args.get("erreur")
+    groupe_id_form = request.args.get("groupe_id")
+    if groupe_id_form:
+        try:
+            groupe_id = _id_formulaire(groupe_id_form, "groupe")
+        except ValueError:
+            abort(400)
+    else:
+        groupe_id = None
+
+    with ouvrir_base() as conn:
+        groupes = conn.execute(
+            "SELECT id, nom, date_debut, date_fin FROM groupes ORDER BY id"
+        ).fetchall()
+        if groupe_id is None:
+            groupe_defaut = _groupe_par_defaut(conn)
+            groupe_id = groupe_defaut["id"] if groupe_defaut else None
+
+        groupe = None
+        membres = []
+        depenses = []
+        if groupe_id is not None:
+            groupe = conn.execute(
+                "SELECT id, nom, date_debut, date_fin FROM groupes WHERE id = ?",
+                (groupe_id,),
+            ).fetchone()
+            if groupe is None:
+                abort(404)
+            membres = conn.execute(
+                "SELECT id, nom FROM membres WHERE groupe_id = ? ORDER BY id",
+                (groupe_id,),
+            ).fetchall()
+            depense_rows = conn.execute(
+                """
+                SELECT d.id, d.libelle, d.montant_centimes, d.date,
+                       d.payeur_id, payeur.nom AS payeur
+                FROM depenses AS d
+                JOIN membres AS payeur ON payeur.id = d.payeur_id
+                WHERE d.groupe_id = ?
+                ORDER BY d.date DESC, d.id DESC
+                """,
+                (groupe_id,),
+            ).fetchall()
+            for depense_row in depense_rows:
+                depense = dict(depense_row)
+                depense["participants"] = conn.execute(
+                    """
+                    SELECT m.nom
+                    FROM participants AS p
+                    JOIN membres AS m ON m.id = p.membre_id
+                    WHERE p.depense_id = ?
+                    ORDER BY p.rowid
+                    """,
+                    (depense["id"],),
+                ).fetchall()
+                depenses.append(depense)
+
+    return render_template(
+        "depenses.html",
+        groupes=groupes,
+        groupe=groupe,
+        groupe_id=groupe_id,
+        membres=membres,
+        depenses=depenses,
+        erreur=erreur,
+    )
 
 @app.get("/groupes")
 def groupes():
+    erreur = request.args.get("erreur")
     with ouvrir_base() as conn:
         groupes = conn.execute(
-            "SELECT id, nom, date_debut, date_fin FROM groupes"
+            "SELECT id, nom, date_debut, date_fin FROM groupes ORDER BY id"
         ).fetchall()
-    return render_template("groupes.html", groupes=groupes)
+    return render_template("groupes.html", groupes=groupes, erreur=erreur)
 
 
 # --- ROUTES POST (Traitement des données, par ton collègue) ---
@@ -196,7 +291,7 @@ def ajouter_groupe():
             raise ValueError("Le nom du groupe est obligatoire.")
         valider_sejour(date_debut, date_fin)
     except ValueError as erreur:
-        return _erreur(str(erreur))
+        return _erreur(str(erreur), page="groupes")
 
     with ouvrir_base() as conn:
         resultat = conn.execute(
@@ -219,7 +314,7 @@ def ajouter_membre(groupe_id: int | None = None):
         if not nom:
             raise ValueError("Le nom du membre est obligatoire.")
     except ValueError as erreur:
-        return _erreur(str(erreur), groupe_id)
+        return _erreur(str(erreur), groupe_id, page="membres")
 
     with ouvrir_base() as conn:
         if groupe_id is None:
@@ -228,12 +323,14 @@ def ajouter_membre(groupe_id: int | None = None):
         if groupe_id is None or not conn.execute(
             "SELECT 1 FROM groupes WHERE id = ?", (groupe_id,)
         ).fetchone():
-            return _erreur("Sélectionnez un groupe existant.", groupe_id)
+            return _erreur(
+                "Sélectionnez un groupe existant.", page="membres"
+            )
         conn.execute(
             "INSERT INTO membres (groupe_id, nom) VALUES (?, ?)",
             (groupe_id, nom),
         )
-    return redirect(url_for("accueil", groupe_id=groupe_id))
+    return redirect(url_for("membres", groupe_id=groupe_id))
 
 
 @app.post("/depenses")
@@ -253,14 +350,16 @@ def ajouter_depense():
         ]
         date_depense = request.form.get("date", "").strip()
     except ValueError as erreur:
-        return _erreur(str(erreur))
+        return _erreur(str(erreur), page="depenses")
 
     with ouvrir_base() as conn:
         groupe = conn.execute(
             "SELECT date_debut, date_fin FROM groupes WHERE id = ?", (groupe_id,)
         ).fetchone()
         if groupe is None:
-            return _erreur("Sélectionnez un groupe existant.", groupe_id)
+            return _erreur(
+                "Sélectionnez un groupe existant.", page="depenses"
+            )
 
         membres = {
             membre["id"]
@@ -269,10 +368,14 @@ def ajouter_depense():
             ).fetchall()
         }
         if payeur_id not in membres:
-            return _erreur("Le payeur doit appartenir au groupe.", groupe_id)
+            return _erreur(
+                "Le payeur doit appartenir au groupe.", groupe_id, page="depenses"
+            )
         if any(membre_id not in membres for membre_id in participants):
             return _erreur(
-                "Tous les participants doivent appartenir au groupe.", groupe_id
+                "Tous les participants doivent appartenir au groupe.",
+                groupe_id,
+                page="depenses",
             )
 
         try:
@@ -284,7 +387,7 @@ def ajouter_depense():
                 participants,
             )
         except ValueError as erreur:
-            return _erreur(str(erreur), groupe_id)
+            return _erreur(str(erreur), groupe_id, page="depenses")
 
         with conn:
             resultat = conn.execute(
@@ -301,7 +404,7 @@ def ajouter_depense():
                 [(depense_id, membre_id) for membre_id in participants],
             )
 
-    return redirect(url_for("accueil", groupe_id=groupe_id))
+    return redirect(url_for("depenses", groupe_id=groupe_id))
 
 
 @app.post("/depenses/<int:depense_id>/supprimer")

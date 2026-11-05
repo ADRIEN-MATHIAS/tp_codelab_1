@@ -1,0 +1,14 @@
+<h1>Partage de frais</h1>
+
+<h2>Membres</h2>
+
+<ul>
+  {% for membre in membres %}
+  <li>{{ membre["nom"] }}</li>
+  {% endfor %}
+</ul>
+
+<form method="post" action="/membres">
+  <input name="nom" placeholder="Nom" required />
+  <button>Ajouter</button>
+</form>

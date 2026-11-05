@@ -1,23 +1,6 @@
-from flask import Flask, redirect, render_template_string, request
+from flask import Flask, redirect, render_template, request
 
 from base import ouvrir_base
-
-# Le HTML de la page.
-PAGE = """
-<h1>Partage de frais</h1>
-
-<h2>Membres</h2>
-<ul>
-  {% for membre in membres %}
-    <li>{{ membre["nom"] }}</li>
-  {% endfor %}
-</ul>
-
-<form method="post" action="/membres">
-  <input name="nom" placeholder="Nom" required>
-  <button>Ajouter</button>
-</form>
-"""
 
 app = Flask(__name__)
 
@@ -27,7 +10,8 @@ app = Flask(__name__)
 def accueil():
     with ouvrir_base() as conn:
         membres = conn.execute("SELECT nom FROM membres").fetchall()
-    return render_template_string(PAGE, membres=membres)
+        
+    return render_template("index.html", membres=membres)
 
 
 # Exemple : reçoit le formulaire et ajoute un membre au groupe 1.

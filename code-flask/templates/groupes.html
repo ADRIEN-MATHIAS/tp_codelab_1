@@ -11,35 +11,43 @@
   <h2>Groupes existants</h2>
 
   {% if groupes %}
-  <figure>
-    <table>
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>Date de début</th>
-          <th>Date de fin</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
+  <div class="table-container">
+    <figure>
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Date de début</th>
+            <th>Date de fin</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        {% for groupe in groupes %}
-        <tr>
-          <td>{{ groupe["nom"] }}</td>
-          <td>{{ groupe["date_debut"] }}</td>
-          <td>{{ groupe["date_fin"] }}</td>
-          <td>
-            <a href="{{ url_for('accueil', groupe_id=groupe['id']) }}">Tableau de bord</a>
-            ·
-            <a href="{{ url_for('membres', groupe_id=groupe['id']) }}">Membres</a>
-            ·
-            <a href="{{ url_for('depenses', groupe_id=groupe['id']) }}">Dépenses</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </figure>
+        <tbody>
+          {% for groupe in groupes %}
+          <tr>
+            <td>{{ groupe["nom"] }}</td>
+            <td>{{ groupe["date_debut"] }}</td>
+            <td>{{ groupe["date_fin"] }}</td>
+            <td>
+              <a href="{{ url_for('accueil', groupe_id=groupe['id']) }}"
+                >Tableau de bord</a
+              >
+              ·
+              <a href="{{ url_for('membres', groupe_id=groupe['id']) }}"
+                >Membres</a
+              >
+              ·
+              <a href="{{ url_for('depenses', groupe_id=groupe['id']) }}"
+                >Dépenses</a
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </figure>
+  </div>
   {% else %}
   <p>Aucun groupe créé pour le moment.</p>
   {% endif %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %} {% block title %}Groupes - Partage de frais{% endblock
+%} {% block content %}
+
+<h1>Groupes</h1>
+
+<section>
+  <h2>Groupes existants</h2>
+
+  {% if groupes %}
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Date de début</th>
+          <th>Date de fin</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for groupe in groupes %}
+        <tr>
+          <td>{{ groupe["nom"] }}</td>
+          <td>{{ groupe["date_debut"] }}</td>
+          <td>{{ groupe["date_fin"] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+  {% else %}
+  <p>Aucun groupe créé pour le moment.</p>
+  {% endif %}
+</section>
+
+<hr />
+
+<section>
+  <h2>Créer un groupe</h2>
+
+  <form method="post" action="{{ url_for('ajouter_groupe') }}">
+    <label>
+      Nom du groupe
+      <input
+        type="text"
+        name="nom"
+        placeholder="Ex : Vacances au Portugal"
+        required
+      />
+    </label>
+
+    <label>
+      Date de début
+      <input type="date" name="date_debut" required />
+    </label>
+
+    <label>
+      Date de fin
+      <input type="date" name="date_fin" required />
+    </label>
+
+    <button type="submit">Créer le groupe</button>
+  </form>
+</section>
+
+{% endblock %}

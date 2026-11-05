@@ -59,7 +59,7 @@
           <th scope="row">{{ solde["nom"] }}</th>
           <td>{{ "%.2f"|format(solde["paye_centimes"] / 100) }} €</td>
           <td>{{ "%.2f"|format(solde["du_centimes"] / 100) }} €</td>
-          <td>
+          <td class="{% if solde['solde_centimes'] > 0 %}solde-positif{% elif solde['solde_centimes'] < 0 %}solde-negatif{% endif %}">
             {% if solde["solde_centimes"] > 0 %}+{% endif %}{{ "%.2f"|format(solde["solde_centimes"] / 100) }} €
           </td>
         </tr>

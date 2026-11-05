@@ -1,0 +1,27 @@
+{% extends "base.html" %} {% block title %}Dépenses - Partage de frais{%
+endblock %} {% block content %}
+
+<h1>Dépenses</h1>
+
+<h2>Ajouter une dépense</h2>
+
+<form method="post" action="/depenses">
+  <label>
+    Libellé
+    <input type="text" name="libelle" required />
+  </label>
+
+  <label>
+    Montant (€)
+    <input type="number" name="montant" step="0.01" required />
+  </label>
+
+  <label>
+    Date
+    <input type="date" name="date" required />
+  </label>
+
+  <button type="submit">Ajouter la dépense</button>
+</form>
+
+{% endblock %}

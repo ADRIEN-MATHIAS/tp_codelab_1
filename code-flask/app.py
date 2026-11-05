@@ -40,22 +40,15 @@ def _groupe_par_defaut(conn):
     ).fetchone()
 
 
-## Redirige vers la page d'accueil avec un message d'erreur
+# Redirige vers la page d'accueil avec un message d'erreur
 def _erreur(message: str, groupe_id: int | None = None):
     return redirect(
         url_for("accueil", groupe_id=groupe_id, erreur=message)
     )
 
 
+# --- ROUTES GET (Affichage des pages) ---
 
-#La fonction accueil() construit toutes les données nécessaires à l’écran :
-
-# Elle récupère l’identifiant du groupe dans l’URL, par exemple /?groupe_id=2. S’il n’y en a pas, elle choisit le groupe par défaut.
-# Elle récupère les groupes, les membres et les dépenses de ce groupe dans SQLite.
-# Elle associe à chaque dépense ses participants.
-# Elle prépare les dépenses pour calculer_soldes(...).
-# Elle calcule également les montants payés et dus, en centimes, pour chaque membre.
-# Elle envoie les résultats à index.html avec render_template(...).
 @app.get("/")
 def accueil():
     erreur = request.args.get("erreur")
@@ -166,14 +159,33 @@ def accueil():
         erreur=erreur,
     )
 
+# Tes routes GET séparées qui ont été conservées
+@app.get("/membres")
+def membres():
+    with ouvrir_base() as conn:
+        groupes = conn.execute("SELECT id, nom FROM groupes").fetchall()
+        membres = conn.execute("""
+            SELECT m.id, m.nom, g.nom as groupe 
+            FROM membres m
+            LEFT JOIN groupes g ON m.groupe_id = g.id
+        """).fetchall()
+    return render_template("membres.html", membres=membres, groupes=groupes)
+
+@app.get("/depenses")
+def depenses():
+    return render_template("depenses.html")
+
+@app.get("/groupes")
+def groupes():
+    with ouvrir_base() as conn:
+        groupes = conn.execute(
+            "SELECT id, nom, date_debut, date_fin FROM groupes"
+        ).fetchall()
+    return render_template("groupes.html", groupes=groupes)
 
 
-#ajouter_groupe() récupère le nom et les dates, vérifie que le nom n’est pas 
-# vide et appelle valider_sejour(...). Si tout est valide, elle insère le groupe en base 
-# et redirige vers ce nouveau groupe.
+# --- ROUTES POST (Traitement des données, par ton collègue) ---
 
-# La création du groupe n’ajoute pas automatiquement de membres : il faut ensuite 
-# utiliser la route d’ajout de membre.
 @app.post("/groupes")
 def ajouter_groupe():
     nom = request.form.get("nom", "").strip()
@@ -195,14 +207,6 @@ def ajouter_groupe():
     return redirect(url_for("accueil", groupe_id=groupe_id))
 
 
-
-
-#ajouter_membre() accepte deux adresses :
-
-# /groupes/<id>/membres cible un groupe précis grâce à l’identifiant dans l’URL.
-# /membres peut recevoir groupe_id dans le formulaire ; sans cet identifiant, 
-# la route choisit le groupe par défaut.
-# Elle vérifie que le nom est renseigné et que le groupe existe, puis ajoute le membre à ce groupe.
 @app.post("/membres")
 @app.post("/groupes/<int:groupe_id>/membres")
 def ajouter_membre(groupe_id: int | None = None):
@@ -232,16 +236,6 @@ def ajouter_membre(groupe_id: int | None = None):
     return redirect(url_for("accueil", groupe_id=groupe_id))
 
 
-
-
-
-# route de validation et d’enregistrement des dépenses 
-
-#Elle lit le groupe, le libellé, le montant, la date, le payeur et la liste des participants.
-# Elle convertit les identifiants en entiers et le montant en centimes.
-# Elle vérifie que le groupe existe, puis que le payeur et tous les participants appartiennent bien à ce groupe.
-# Elle appelle valider_depense(...) pour les règles métier : montant positif, date dans les dates du séjour et au moins un participant.
-# Elle enregistre la dépense et ses participants en base.
 @app.post("/depenses")
 def ajouter_depense():
     try:
@@ -310,12 +304,6 @@ def ajouter_depense():
     return redirect(url_for("accueil", groupe_id=groupe_id))
 
 
-
-
-
-
-# Route de suppression de dépense. Elle vérifie que la dépense existe et que le groupe_id du formulaire correspond 
-# à celui de la dépense. Si tout est correct, elle supprime la dépense et redirige vers l’accueil du groupe.
 @app.post("/depenses/<int:depense_id>/supprimer")
 def supprimer_depense(depense_id: int):
     with ouvrir_base() as conn:

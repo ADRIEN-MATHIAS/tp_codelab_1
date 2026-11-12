@@ -43,6 +43,7 @@ def test_page_depenses_propose_un_formulaire_complet(client):
     assert b'name="groupe_id"' in response.data
     assert b'name="payeur_id"' in response.data
     assert b'name="participants"' in response.data
+    assert b'name="type"' in response.data
 
 
 def test_accueil_calcule_les_soldes_du_groupe(client):
@@ -250,3 +251,58 @@ def test_refuse_un_participant_choisi_plusieurs_fois(client):
         assert conn.execute(
             "SELECT 1 FROM depenses WHERE libelle = 'Participant duplique'"
         ).fetchone() is None
+
+def test_ajouter_depense_avec_type_enregistre_et_affiche_le_type(client):
+    # 1. Envoi d'une dépense avec un type spécifique
+    response = client.post(
+        "/depenses",
+        data={
+            "groupe_id": "1",
+            "libelle": "Billets de train",
+            "montant": "45.00",
+            "date": "2026-07-03",
+            "payeur_id": "1",
+            "participants": ["1", "2"],
+            "type": "Transport",
+        },
+    )
+    assert response.status_code == 302
+
+    # 2. Vérification de la persistance en base de données
+    with base.ouvrir_base() as conn:
+        depense = conn.execute(
+            "SELECT type FROM depenses WHERE libelle = 'Billets de train'"
+        ).fetchone()
+    assert depense is not None
+    assert depense["type"] == "Transport"
+
+    # 3. Vérification de l'affichage sur la page des dépenses et à l'accueil
+    page_depenses = client.get("/depenses?groupe_id=1")
+    assert b"Transport" in page_depenses.data
+
+    page_accueil = client.get("/?groupe_id=1")
+    assert b"Transport" in page_accueil.data
+
+
+def test_ajouter_depense_sans_type_utilise_la_valeur_par_defaut(client):
+    # Envoi d'une dépense sans spécifier le champ 'type'
+    response = client.post(
+        "/depenses",
+        data={
+            "groupe_id": "1",
+            "libelle": "Imprévu",
+            "montant": "15.00",
+            "date": "2026-07-04",
+            "payeur_id": "1",
+            "participants": ["1"],
+        },
+    )
+    assert response.status_code == 302
+
+    # Vérification que le fallback 'Autre' a bien été enregistré
+    with base.ouvrir_base() as conn:
+        depense = conn.execute(
+            "SELECT type FROM depenses WHERE libelle = 'Imprévu'"
+        ).fetchone()
+    assert depense is not None
+    assert depense["type"] == "Autre"

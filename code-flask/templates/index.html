@@ -80,6 +80,7 @@
           <th>Date</th>
           <th>Libellé</th>
           <th>Payeur</th>
+          <th>Type</th>
           <th>Montant</th>
         </tr>
       </thead>
@@ -89,6 +90,7 @@
           <td>{{ depense["date"] }}</td>
           <td>{{ depense["libelle"] }}</td>
           <td>{{ depense["payeur"] }}</td>
+          <td>{{ depense["type"] }}</td>
           <td>{{ "%.2f"|format(depense["montant_centimes"] / 100) }} €</td>
         </tr>
         {% endfor %}

@@ -89,7 +89,7 @@ def accueil():
             depense_rows = conn.execute(
                 """
                 SELECT d.id, d.libelle, d.montant_centimes, d.date,
-                       d.payeur_id, payeur.nom AS payeur
+                       d.payeur_id, d.type, payeur.nom AS payeur
                 FROM depenses AS d
                 JOIN membres AS payeur ON payeur.id = d.payeur_id
                 WHERE d.groupe_id = ?
@@ -237,7 +237,7 @@ def depenses():
             depense_rows = conn.execute(
                 """
                 SELECT d.id, d.libelle, d.montant_centimes, d.date,
-                       d.payeur_id, payeur.nom AS payeur
+                       d.payeur_id, d.type, payeur.nom AS payeur
                 FROM depenses AS d
                 JOIN membres AS payeur ON payeur.id = d.payeur_id
                 WHERE d.groupe_id = ?
@@ -349,6 +349,7 @@ def ajouter_depense():
             for valeur in request.form.getlist("participants")
         ]
         date_depense = request.form.get("date", "").strip()
+        type_depense = request.form.get("type", "Autre").strip() or "Autre"
     except ValueError as erreur:
         return _erreur(str(erreur), page="depenses")
 
@@ -393,10 +394,10 @@ def ajouter_depense():
             resultat = conn.execute(
                 """
                 INSERT INTO depenses
-                    (groupe_id, libelle, montant_centimes, date, payeur_id)
-                VALUES (?, ?, ?, ?, ?)
+                    (groupe_id, libelle, montant_centimes, date, payeur_id, type)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (groupe_id, libelle, montant_centimes, date_depense, payeur_id),
+                (groupe_id, libelle, montant_centimes, date_depense, payeur_id, type_depense),
             )
             depense_id = resultat.lastrowid
             conn.executemany(
@@ -432,4 +433,4 @@ def supprimer_depense(depense_id: int):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

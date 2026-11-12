@@ -321,11 +321,15 @@ def ajouter_membre(groupe_id: int | None = None):
             groupe = _groupe_par_defaut(conn)
             groupe_id = groupe["id"] if groupe else None
         if groupe_id is None or not conn.execute(
-            "SELECT 1 FROM groupes WHERE id = ?", (groupe_id,)
-        ).fetchone():
+            "SELECT 1 FROM groupes WHERE id = ?", (groupe_id,)).fetchone(): #quand un seul param, il faut mettre une virgule pour que ce soit un tuple avec python
             return _erreur(
                 "Sélectionnez un groupe existant.", page="membres"
             )
+        
+        if conn.execute(
+            "SELECT 1 FROM membres WHERE groupe_id = ? AND nom = ?",(groupe_id, nom),).fetchone(): # les ? servent a eviter les injections sql, et on met les valeurs dans un tuple
+            return _erreur("Ce memebre existe déjà dans le groupe.", groupe_id, page="membres")
+        
         conn.execute(
             "INSERT INTO membres (groupe_id, nom) VALUES (?, ?)",
             (groupe_id, nom),

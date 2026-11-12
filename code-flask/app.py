@@ -438,3 +438,34 @@ def supprimer_depense(depense_id: int):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
+    
+    
+    
+#Appliquer le remboursement
+@app.post("/remboursements")
+def enregistrer_remboursement():
+    groupe_id = int(request.form["groupe_id"])
+    de_id = int(request.form["de_id"])
+    a_id = int(request.form["a_id"])
+    montant_centimes = int(request.form["montant_centimes"])
+    with ouvrir_base() as conn:
+        # On récupère le nom des personnes pour un libellé clair
+        de_nom = conn.execute("SELECT nom FROM membres WHERE id = ?", (de_id,)).fetchone()["nom"]
+        a_nom = conn.execute("SELECT nom FROM membres WHERE id = ?", (a_id,)).fetchone()["nom"]
+        groupe = conn.execute("SELECT date_debut FROM groupes WHERE id = ?", (groupe_id,)).fetchone()
+        # 1. On insère la dépense (le payeur est celui qui devait de l'argent)
+        curseur = conn.execute(
+            """
+            INSERT INTO depenses (groupe_id, libelle, montant_centimes, date, payeur_id, type)
+            VALUES (?, ?, ?, ?, ?, 'Remboursement')
+            """,
+            (groupe_id, f"Remboursement : {de_nom} ➔ {a_nom}", montant_centimes, groupe["date_debut"], de_id),
+        )
+        depense_id = curseur.lastrowid
+        # 2. L'unique participant est celui qui a reçu l'argent
+        conn.execute(
+            "INSERT INTO participants (depense_id, membre_id) VALUES (?, ?)",
+            (depense_id, a_id),
+        )
+    # On redirige vers l'accueil : les comptes sont rafraîchis instantanément !
+    return redirect(url_for("accueil", groupe_id=groupe_id))

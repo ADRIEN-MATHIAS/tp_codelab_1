@@ -56,6 +56,38 @@ def calculer_soldes(
     return soldes
 
 
+def calculer_remboursements(soldes: dict[int, int]) -> list[dict]:
+    debiteurs = {m: -s for m,s in soldes.items() if s < 0}
+    creanciers = {m: s for m,s in soldes.items() if s > 0}
+    
+    total_credits = sum(creanciers.values())
+    if total_credits == 0:
+        return []
+    
+    liste_creanciers = list(creanciers.items())
+    remboursements= []
+    
+    #chaque debiteur rembourse propo chaque creancier
+    for debiteur_id, dette in debiteurs.items() :
+        dette_restante = dette
+        
+        for index, (creancier_id, credit) in enumerate(liste_creanciers):
+            #si dernier creancier, il prend tout le rest de la dette
+            if index == len(liste_creanciers)-1 :
+                montant = dette_restante
+            else : 
+                montant = (dette*credit)// total_credits
+                dette_restante -= montant
+            
+            if montant > 0:
+                remboursements.append({
+                    "de": debiteur_id,
+                    "a": creancier_id,
+                    "montant_centimes": montant,
+                })
+    
+    return remboursements
+
 
 # Vérifie les dates ISO d'un séjour et leur ordre chronologique.
 def valider_sejour(date_debut: str, date_fin: str) -> None:

@@ -51,6 +51,7 @@
           <th>A payé</th>
           <th>Sa part</th>
           <th>Solde</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -61,6 +62,18 @@
           <td>{{ "%.2f"|format(solde["du_centimes"] / 100) }} €</td>
           <td class="{% if solde['solde_centimes'] > 0 %}solde-positif{% elif solde['solde_centimes'] < 0 %}solde-negatif{% endif %}">
             {% if solde["solde_centimes"] > 0 %}+{% endif %}{{ "%.2f"|format(solde["solde_centimes"] / 100) }} €
+          </td>
+          <td>
+            {% if solde["solde_centimes"] < 0 %}
+            <button
+              type="button"
+              class="outline"
+              style="padding: 0.2rem 0.5rem; margin: 0; font-size: 0.85rem;"
+              onclick="afficherRemboursement({{ solde['membre_id'] }})"
+            >
+              Rembourser
+            </button>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -102,5 +115,47 @@
   {% endif %}
 </section>
 {% endif %}
+
+<script>
+  // Les remboursements calculés par la fonction Python de ton collègue
+  const listeRemboursements = {{ remboursements|tojson if remboursements else '[]' }};
+  const groupeId = {{ groupe_id if groupe_id else 'null' }};
+
+  async function afficherRemboursement(membreId) {
+    // On filtre les remboursements qui concernent cette personne (qui doit de l'argent)
+    const dus = listeRemboursements.filter(r => r.de === membreId);
+
+    if (dus.length === 0) {
+      alert("Aucun remboursement nécessaire.");
+      return;
+    }
+
+    const nomDebiteur = dus[0].de_nom;
+    const lignes = dus.map(r => `• ${(r.montant_centimes / 100).toFixed(2)} € à ${r.a_nom}`);
+
+    const message = `Remboursement(s) calculé(s) pour ${nomDebiteur} :\n\n` + 
+                    lignes.join("\n") + 
+                    "\n\nConfirmer et appliquer ce remboursement ?";
+
+    // Affiche l'alerte avec confirmation
+    if (confirm(message)) {
+      // Si l'utilisateur clique OK, on envoie chaque remboursement à la route POST de ton collègue
+      for (const r of dus) {
+        const formData = new FormData();
+        formData.append("groupe_id", groupeId);
+        formData.append("de_id", r.de);
+        formData.append("a_id", r.a);
+        formData.append("montant_centimes", r.montant_centimes);
+
+        await fetch("{{ url_for('enregistrer_remboursement') }}", {
+          method: "POST",
+          body: formData
+        });
+      }
+      // Recharger la page pour voir les soldes mis à jour instantanément
+      window.location.reload();
+    }
+  }
+</script>
 
 {% endblock %}

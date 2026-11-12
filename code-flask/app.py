@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from flask import Flask, abort, redirect, render_template, request, url_for
 
 from base import ouvrir_base
-from calculs import calculer_soldes, repartir_centimes, valider_depense, valider_sejour
+from calculs import calculer_soldes, repartir_centimes, valider_depense, valider_sejour, calculer_remboursements
 
 app = Flask(__name__)
 
@@ -73,6 +73,7 @@ def accueil():
         membres = []
         depenses = []
         soldes = []
+        remboursements = []
 
         if groupe_id is not None:
             groupe = conn.execute(
@@ -137,6 +138,11 @@ def accueil():
                     du_par_membre[membre_id] += part
 
             soldes_par_membre = calculer_soldes(membres_ids, depenses_calcul)
+            remboursements = calculer_remboursements(soldes_par_membre)
+            noms = {m["id"]: m["nom"] for m in membres}
+            for r in remboursements:
+                r["de_nom"] = noms.get(r["de"], "")
+                r["a_nom"] = noms.get(r["a"], "")
             soldes = [
                 {
                     "membre_id": membre["id"],
@@ -156,6 +162,7 @@ def accueil():
         membres=membres,
         depenses=depenses,
         soldes=soldes,
+        remboursements=remboursements,
         erreur=erreur,
     )
 
@@ -436,11 +443,6 @@ def supprimer_depense(depense_id: int):
     return redirect(url_for("accueil", groupe_id=groupe_id))
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
-    
-    
-    
 #Appliquer le remboursement
 @app.post("/remboursements")
 def enregistrer_remboursement():
@@ -469,3 +471,7 @@ def enregistrer_remboursement():
         )
     # On redirige vers l'accueil : les comptes sont rafraîchis instantanément !
     return redirect(url_for("accueil", groupe_id=groupe_id))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5001, debug=True)
